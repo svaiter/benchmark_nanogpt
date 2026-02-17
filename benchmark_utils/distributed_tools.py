@@ -3,7 +3,7 @@ import torch
 import torch.distributed as t_dist
 
 
-def get_running_setup():
+def setup_distributed():
 
     # Use submitit helpers to setup distributed training easily.
     try:

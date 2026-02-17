@@ -7,7 +7,7 @@ from torch.optim import AdamW
 from tqdm.auto import tqdm
 
 from benchmark_utils.lr_scheduler import get_lr
-from benchmark_utils.running_setup import get_running_setup
+from benchmark_utils.distributed_tools import setup_distributed
 
 
 class Solver(BaseSolver):
@@ -32,7 +32,7 @@ class Solver(BaseSolver):
     def set_objective(self, train_dataloader, model):
 
         # Setup distributed training if needed
-        self.dist, self.rank, self.world_size, device = get_running_setup()
+        self.dist, self.rank, self.world_size, device = setup_distributed()
 
         if self.sin_init:
             print("Using sinusoidal initialization")
