@@ -1,4 +1,6 @@
 # flake8: noqa
+# This file has been copied from:
+# https://github.com/nikhilvyas/SOAP/blob/f42d296cb4146a67fbe811371e6badb9a39cc54d/soap.py
 
 import torch
 import torch.optim as optim
