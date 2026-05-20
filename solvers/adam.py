@@ -14,13 +14,16 @@ class Solver(BaseSolver):
 
     name = 'Adam'
 
+    # Hyperparameters mirror modded-nanogpt @ 844e5fd run.sh, which reaches
+    # 3.2818 val loss on FineWeb in 9536 iters @ effective batch 64*1024*8.
     parameters = {
-        'learning_rate': [1e-3],
-        'weight_decay': [1e-4],
-        'num_steps': [6200],
+        'learning_rate': [1.8e-3],
+        'weight_decay': [0.0],
+        'num_steps': [9536],
+        'warmup_iters': [256],
+        'warmdown_iters': [2048],
         'batch_size': [64],
         "slurm_nodes": [1, 2],
-        "sin_init": [True],
     }
     slurm_params = {
         "slurm_gres": "gpu:4",
@@ -33,12 +36,6 @@ class Solver(BaseSolver):
 
         # Setup distributed training if needed
         self.dist, self.rank, self.world_size, device = setup_distributed()
-
-        if self.sin_init:
-            print("Using sinusoidal initialization")
-            from benchmark_utils.sin_init import sinusoidal_
-            model.init_func = sinusoidal_
-            model.initialize_weights(seed=42)
 
         model = model.to(device=device)
         model.device = device  # store the device in the model
@@ -89,7 +86,7 @@ class Solver(BaseSolver):
         self.optimizer = AdamW(
             optim_groups,
             lr=torch.tensor(self.learning_rate),
-            betas=(0.9, 0.95),
+            betas=(0.9, 0.98),
             fused=True
         )
 
@@ -123,7 +120,11 @@ class Solver(BaseSolver):
                         )
 
                 # determine and set the learning rate for this iteration
-                scale_lr = get_lr(step, self.num_steps)
+                scale_lr = get_lr(
+                    step, self.num_steps,
+                    warmup_iters=self.warmup_iters,
+                    warmdown_iters=self.warmdown_iters,
+                )
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] = torch.tensor(
                         self.learning_rate * scale_lr
